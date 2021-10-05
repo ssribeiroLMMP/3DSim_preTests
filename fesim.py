@@ -66,7 +66,7 @@ def DD(u):
     return D
 # Stress Tensor
 def TT(u, p, mu):
-    #Cartesian with pressure inputs
+    #Cartesian
     T = 2*mu*DD(u) - p*df.Identity(len(u))
 
     #Cylindrical(RZ)
@@ -124,10 +124,8 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
 ## Fluids smooth Interface
 def initialInterface(C,inputs):
     c0 = df.Function(C)
-    if type(inputs.C0) ==float or type(inputs.C0)==int:
-        c0.assign(df.project(df.Constant(inputs.C0),C))
-    else:
-        c0.assign(df.project(inputs.C0,C))
+    # c0.assign(df.project(inputs.smoothstep,C))
+    c0.assign(df.project(inputs.C0,C))
     return c0
 
 # Calculates Fluid properties by Mesh Cell
@@ -182,7 +180,7 @@ def saveResults(results,paraFiles,t,inputs,ParaViewFilenames,ParaViewTitles):
             results[i].rename(ParaViewFilenames[i],ParaViewTitles[i])
             paraFiles[i].write(results[i],t)
     # Save time conditions
-    if type(inputs.dtSav) == float or type(inputs.dtSav) == int:
+    if type(inputs.dtSav) == float:
         dtSav = inputs.dtSav
     else: 
         for key in inputs.dtSav.keys():
@@ -203,7 +201,7 @@ def main(mpi_comm,inputs,savingData):
     # Set lastTry flag to False
     lastTry = False
     # Set next saving time
-    if type(inputs.dtSav) == float or type(inputs.dtSav) == int:
+    if type(inputs.dtSav) == float:
         nextSavTime = inputs.dtSav
     else:
         nextSavTime = inputs.dtSav[0]
@@ -211,7 +209,7 @@ def main(mpi_comm,inputs,savingData):
     #  Mesh Reading
     # Load Subdomains
     Subdomains = readDomains(inputs.meshPath,inputs.meshFile)
-    # print(Subdomains)
+    print(Subdomains)
 
     # if inputs.numCores <= 1:
         # # Option 2 - Gmsh Serial XML Converted Files
@@ -229,11 +227,11 @@ def main(mpi_comm,inputs,savingData):
     hdf.read(meshObj, "/mesh", False)
     
     # Initialize subdomain (fluid)
-    markers = df.MeshFunction("size_t",meshObj,3)
+    markers = df.MeshFunction("size_t",meshObj,meshObj.topology().dim())
     hdf.read(markers, "/subdomains")
 
     # Initialize boundaries (inlet, outlet, etc...)
-    boundaries = df.MeshFunction("size_t",meshObj,2)
+    boundaries = df.MeshFunction("size_t",meshObj,meshObj.topology().dim()-1)
     hdf.read(boundaries, "/boundaries")
 
 
@@ -290,28 +288,32 @@ def main(mpi_comm,inputs,savingData):
     
     ## Dirichlet 
     ### No-slip wall velocity conditions
+    # bcU1 = df.DirichletBC(U,df.Constant((0.0,0.0)),boundaries,Subdomains['BottomWall'])
+    # bcU2 = df.DirichletBC(U,df.Constant((0.0,0.0)),boundaries,Subdomains['TopWall'])
+    # bcU3 = df.DirichletBC(U,df.Constant((0.0,0.0)),boundaries,Subdomains['InnerWalls'])
     bcU1 = df.DirichletBC(U,df.Constant((0.0, 0.0, 0.0)),boundaries,Subdomains['wall'])
     # bcU4 = df.DirichletBC(U,df.Constant((inputs.vAxialInlet,inputs.vRadialInlet)),boundaries,Subdomains['Inlets'])
     ### Inlet velocity conditions
-    try:
-        inputs.vInlet.t = 0
-        bcU2 = df.DirichletBC(U,inputs.vInlet,boundaries,Subdomains['inlet'])
-        varVBC = True
-    except:
-        bcU2 = df.DirichletBC(U,df.Constant((0.0,0.0,inputs.vAxialInlet)),boundaries,Subdomains['inlet'])
-        varVBC = False
-    bcU = [bcU1,bcU2]
+    # try:
+    #     inputs.vInlet.t = 0
+    #     bcU4 = df.DirichletBC(U,inputs.vInlet,boundaries,Subdomains['Inlets'])
+    #     varVBC = True
+    # except:
+    #     bcU4 = df.DirichletBC(U,df.Constant((inputs.vAxialInlet,inputs.vRadialInlet)),boundaries,Subdomains['Inlets'])
+    #     varVBC = False
+
+    bcU = [bcU1]
+    # bcU3 = df.DirichletBC(U,df.Constant((inputs.vAxialInlet,inputs.vRadialInlet)),boundaries,Subdomains['Inlets'])
+    # bcU = [bcU1,bcU2,bcU3]
 
     ### Concentration inlet conditions
-    if type(inputs.Cin) == float or type(inputs.Cin) == int:
+    if type(inputs.Cin) == float:
         bcC1 = df.DirichletBC(C,df.Constant(inputs.Cin),boundaries,Subdomains['inlet'])
-        
+        bcC = [bcC1]
     else:
         inputs.Cin.t = 0
         bcC1 = df.DirichletBC(C,inputs.Cin,boundaries,Subdomains['inlet'])
-        varBC = True
-    
-    bcC = [bcC1]
+        # varBC = True
 
     # Initial Conditions
     ## Initial Time Step   
@@ -373,17 +375,11 @@ def main(mpi_comm,inputs,savingData):
             ## Transient Flow Bilinear Form:
             ### Linear Momentum Conservation: F = a - L
             #         # Time dependent term                      # Inertia Term                                     # Cauchy Stresses Term  
-            # a1 = rho*df.dot((u-u0)/Dt,v)*dx() + inputs.alpha *(rho*df.dot(df.dot(u ,df.grad(u) ),v) + df.inner(TT(u,p,mu),DD(v)))*dx() + \
-                                                # (1-inputs.alpha)*(rho*df.dot(df.dot(u0,df.grad(u0)),v) + df.inner(TT(u0,p0,mu),DD(v)))*dx()  # Relaxation
-                                                
-            #         # Time dependent term                      # Inertia Term                                     # Viscoust Term  
-            a1  = rho*df.dot((u-u0)/Dt,v)*dx() + inputs.alpha *(rho*df.dot(df.dot(u ,df.grad(u) ),v) + df.inner(2*mu*DD(u),DD(v)))*dx() + df.inner(df.grad(p),v) + \
-                                                (1-inputs.alpha)*(rho*df.dot(df.dot(u0,df.grad(u0)),v) + df.inner(2*mu*DD(u),DD(v)))*dx()  # Relaxation
-                                                
+            a1 = rho*df.dot((u-u0)/Dt,v)*dx() + inputs.alpha *(rho*df.dot(df.dot(u ,df.grad(u) ),v) + df.inner(TT(u,p,mu),DD(v)))*dx() + \
+                                                (1-inputs.alpha)*(rho*df.dot(df.dot(u0,df.grad(u0)),v) + df.inner(TT(u0,p0,mu),DD(v)))*dx()  # Relaxation 
             # Pressure Boundary Conditions: Naturally Stated
                     # Inlet Pressure                                    # Outlet Pressure                                      # Gravity
-            # L1 = - (inputs.Pin)*df.dot(n,v)*ds(Subdomains['inlet']) - (inputs.Pout)*df.dot(n,v)*ds(Subdomains['outlet']) + df.inner(rho*inputs.g,v)*dx()
-            L1 = + df.inner(rho*inputs.g,v)*dx()
+            L1 = - (inputs.Pin)*df.dot(n,v)*ds(Subdomains['inlet']) - (inputs.Pout)*df.dot(n,v)*ds(Subdomains['outlet']) + df.inner(rho*inputs.g,v)*dx()
                     # Inlet Flowrate 
             # L1 = 0 - (inputs.Pout)*df.dot(n,v)*ds(Subdomains['Outlets']) #+ df.inner(rho*inputs.g,v)*dx()
                     # Cavity
@@ -399,11 +395,11 @@ def main(mpi_comm,inputs,savingData):
             ## Jacobian Matrix Calculation
             J = df.derivative(F,w,dw)
 
-            if varVBC:
-                inputs.vInlet.t = 0
-                bcU2 = df.DirichletBC(U,inputs.vInlet,boundaries,Subdomains['inlet'])
-                bcU[1] = bcU2
+            # if varVBC:
+            #     inputs.vInlet.t = 0
+            #     bcU4 = df.DirichletBC(U,inputs.vInlet,boundaries,Subdomains['Inlets'])
 
+            # bcU[3] = bcU4
             ##########   Numerical Solver Properties
             # Problem and Solver definitions
             problemU = df.NonlinearVariationalProblem(F,w,bcU,J)
@@ -449,28 +445,28 @@ def main(mpi_comm,inputs,savingData):
             ac, Lc = df.lhs(Fc), df.rhs(Fc)
             
             # Variable Boundary Condition
-            if varBC:
-                # Variable Inlet Concentration Condition
-                inputs.Cin.t = t
-                bcCin = df.DirichletBC(C,inputs.Cin,boundaries,Subdomains['Inlets'])
-                for key in inputs.pHin.keys():
-                    if t >= key:
-                        pHin = inputs.pHin[key]
-                        break
-                    else:
-                        pass
+            # if varBC:
+            #     # Variable Inlet Concentration Condition
+            #     inputs.Cin.t = t
+            #     bcCin = df.DirichletBC(C,inputs.Cin,boundaries,Subdomains['Inlets'])
+            #     for key in inputs.pHin.keys():
+            #         if t >= key:
+            #             pHin = inputs.pHin[key]
+            #             break
+            #         else:
+            #             pass
                 
                         
-                bcC = [bcCin]
+            #     bcC = [bcCin]
 
             # Solve Mass Transport Problem
             # Variable Boundary Condition
-            if varBC:
-                if rank == 0:
-                    print('pHin: {:.2f} '.format(pHin))
-            df.solve(ac == Lc, c_1, bcC)
-            if rank == 0:
-                print('Solved Mass Transport')
+            # if varBC:
+            #     if rank == 0:
+            #         print('pHin: {:.2f} '.format(pHin))
+            # df.solve(ac == Lc, c_1, bcC)
+            # if rank == 0:
+            #     print('Solved Mass Transport')
             
             # Calculate pH from Ion Concentration (mol/m³)
             pHExpression = df.Expression('-log10(Cion/1000)',Cion=c_1, degree=2)

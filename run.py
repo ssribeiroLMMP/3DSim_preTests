@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/env/bin/python3
 """
 Created on Tue Jan 05 15:35:36 2021
 @author: Sergio Ribeiro
@@ -13,12 +13,13 @@ import errno
 # Solve Command Compilation
 def solveCommand(inputs):
     if inputs.numCores <=1 or inputs.simulationType == "Pure Difusion":
-        # return 'python3 fesim.py>>res/'+inputs.caseId+'/Execution.txt'
+        # command = 'python3 fesim.py>>res/'+inputs.caseId+'/Execution.txt' 
         return 'python3 fesim.py'
     else:
-        # return 'mpirun -np '+str(inputs.numCores)+' --allow-run-as-root python3 fesim.py>>res/'+inputs.caseId+'/Execution.txt'
+        # command = 'mpirun -np '+str(inputs.numCores)+' --allow-run-as-root python3 fesim.py>>res/'+inputs.caseId+'/Execution.txt'
         return 'mpirun -np '+str(inputs.numCores)+' --allow-run-as-root python3 fesim.py'
-
+    # print(command)
+    return command
 
 def main():
     try:

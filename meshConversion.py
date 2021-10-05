@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/env/bin/python3
 
 # Libraries Import
 import matplotlib.pyplot as plt
