@@ -2,7 +2,7 @@ from dolfin import Expression, Constant
 
 # Inputs
 # Mesh File
-caseId = 'SimplePipeTest_parallel_4cores' 
+caseId = 'SimplePipeTest_serial' 
 # caseId = 'PureDifusion_HClBrine_229kEl_varBC_12h_12h'
 meshPath = 'Mesh/'
 meshFile = 'pipeMesh_tri_41k'
@@ -10,7 +10,7 @@ resPath = 'res/'+caseId+'/'
 replaceGeometry = False
 # Choose between "Pure Difusion" OR "Flow and Difusion"
 simulationType = "Flow and Difusion" # "Pure Difusion" # 
-numCores = 4    # If num Cores == 1, Runs in Series
+numCores = 1    # If num Cores == 1, Runs in Series
                 # Parallel computing is indicated for "Flow and Difusion" simulations. 
                 # "Pure Difusion" simulations ignores this parameter and runs in series.
 
@@ -69,8 +69,8 @@ alphaC = 0.7            # Mass Transport relaxation coefficient
 tEnd = 28        # [s]
 # Auto-time step controls 
 # Passing equal dt0=dtMin=dtMax, auto-timestep is turned off.
-dt0 = 1e-3              # [s]
-dtMin = 1e-5         # [s]
+dt0 = 1e-1              # [s]
+dtMin = 1e-3         # [s]
 dtMax = 1.0        # [s]
 # If iterations for convergence <= minDTIter => increase(DOUBLE) time step if possible
 # If iterations for convergence > minDTIter + deltaDTIter => reduce time step(HALF) if possible
@@ -96,4 +96,4 @@ Cout = 1000.0
 U0x = 0.0                       # [m/s]
 U0y = 0.0                       # [m/s]
 U0z = 0.0                       # [m/s]
-C0 = Expression('( (CMax-CMin) / (1 + exp( IntIncl*(-x[1]+x0) ) ) ) + CMin',degree=2,IntIncl = 20,x0=0.5,CMax=Cout,CMin=Cin)
+C0 = Expression('( (CMax-CMin) / (1 + exp( IntIncl*(-x[2]+x0) ) ) ) + CMin',degree=2,IntIncl = 20,x0=0.5,CMax=Cout,CMin=Cin)
