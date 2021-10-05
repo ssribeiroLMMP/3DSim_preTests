@@ -25,9 +25,9 @@ th=PI/4.;  //theta
 lambda=0.3;   //=R_{arc}/R
 Lz=10;   //length in z-dir (axial)
 //***** Grid Paramaters
-Nc=11;  // no. of nodes (=#elem+1) in azimuthal direction
-NB=3;   // no. of elemtns adjacent to the wall
-NM=4;   // no. of nodes (=#elem+1) between the near wall layer and central square part
+Nc=7;  // no. of nodes (=#elem+1) in azimuthal direction
+NB=2;   // no. of elemtns adjacent to the wall
+NM=3;   // no. of nodes (=#elem+1) between the near wall layer and central square part
 // compression ratios over the radial lines of the mesh
 compressRatio_B=0.85;  //ratio of grid compression toward the wall (<1)
 compressRatio_M=0.87;  //compression ratio in the middle layer
