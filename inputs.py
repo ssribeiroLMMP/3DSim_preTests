@@ -2,12 +2,12 @@ from dolfin import Expression, Constant
 
 # Inputs
 # Mesh File
-caseId = 'SimplePipeTest_parallel_16cores_VIn_29k' 
+caseId = 'SimplePipeTest_parallel_16cores_VIn_40k' 
 # caseId = 'PureDifusion_HClBrine_229kEl_varBC_12h_12h'
 meshPath = 'Mesh/'
-meshFile = 'pipeMesh_tri_29k'
+meshFile = 'pipeMesh_tri_40k'
 resPath = 'res/'+caseId+'/' 
-replaceGeometry = False
+replaceGeometry = True
 # Choose between "Pure Difusion" OR "Flow and Difusion"
 simulationType = "Flow and Difusion" # "Pure Difusion" # 
 numCores = 16    # If num Cores == 1, Runs in Series
