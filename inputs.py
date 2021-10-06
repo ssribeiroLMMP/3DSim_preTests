@@ -2,15 +2,15 @@ from dolfin import Expression, Constant
 
 # Inputs
 # Mesh File
-caseId = 'SimplePipeTest_serial' 
+caseId = 'SimplePipeTest_parallel_16cores_VIn_29k' 
 # caseId = 'PureDifusion_HClBrine_229kEl_varBC_12h_12h'
 meshPath = 'Mesh/'
-meshFile = 'pipeMesh_tri_41k'
+meshFile = 'pipeMesh_tri_29k'
 resPath = 'res/'+caseId+'/' 
 replaceGeometry = False
 # Choose between "Pure Difusion" OR "Flow and Difusion"
 simulationType = "Flow and Difusion" # "Pure Difusion" # 
-numCores = 1    # If num Cores == 1, Runs in Series
+numCores = 16    # If num Cores == 1, Runs in Series
                 # Parallel computing is indicated for "Flow and Difusion" simulations. 
                 # "Pure Difusion" simulations ignores this parameter and runs in series.
 
@@ -39,8 +39,8 @@ mu_1 = mu_Displaced         # [Pa.s]
 
 # Fluid 2: Entering the Pipe
 Fluid2Tag = 1   # Entering the pipe
-rho_2 = mu_Displacer        # [kg/m3] 
-mu_2 = mu_Displaced          # [Pa.s]
+rho_2 = rho_Displacer        # [kg/m3] 
+mu_2 = mu_Displacer          # [Pa.s]
 
 # Diffusion of Fluid 2 in Fluid 1--------------------------------------------
 D = D_NoMixture        # [m²/s]
@@ -66,26 +66,27 @@ alpha = 0.9             # Flow relaxation coefficient
 alphaC = 0.7            # Mass Transport relaxation coefficient
 
 # Simulation Time
-tEnd = 28        # [s]
+tEnd = 0.5        # [s]
 # Auto-time step controls 
 # Passing equal dt0=dtMin=dtMax, auto-timestep is turned off.
-dt0 = 1e-1              # [s]
-dtMin = 1e-3         # [s]
-dtMax = 1.0        # [s]
+dt0 = 1e-6              # [s]
+dtMin = 1e-8         # [s]
+dtMax = 5e-2        # [s]
 # If iterations for convergence <= minDTIter => increase(DOUBLE) time step if possible
 # If iterations for convergence > minDTIter + deltaDTIter => reduce time step(HALF) if possible
-minDtIter = 3.0           # Positive integer 
-deltaDtIter = 1.0         # Positive integer 
+minDtIter = 1.0           # Positive integer 
+deltaDtIter = 3.0         # Positive integer 
 # Saving Time Step
 # dtSav = dtMax*1     # [s]
 tChangeSave = 10 # [s]
-dtSav =  dtMax
+dtSav =    {0: 1e-6,
+            1e-3: 1e-3}
 
 # Pressure Boundary Conditions
 P0 = 0           # [Pa]
 ## Pressure Difference
 Pout = P0         # [Pa]
-Pin = Pout + 200*10  # [Pa] 25 bbl/min
+Pin = Pout + 225.04*10  # [Pa] 25 bbl/min
 Cin = 0.0
 Cout = 1000.0
 # Constant condition for Inlet Concentration
@@ -97,3 +98,4 @@ U0x = 0.0                       # [m/s]
 U0y = 0.0                       # [m/s]
 U0z = 0.0                       # [m/s]
 C0 = Expression('( (CMax-CMin) / (1 + exp( IntIncl*(-x[2]+x0) ) ) ) + CMin',degree=2,IntIncl = 20,x0=0.5,CMax=Cout,CMin=Cin)
+vAxialInlet = 0.363           # [m/s]

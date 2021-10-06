@@ -285,15 +285,15 @@ def main(mpi_comm,inputs,savingData):
     c_1 = df.Function(C)            # result functions
     
     # Uniform Boundary Conditions
-    
+    bcU = []
     ## Dirichlet 
     ### No-slip wall velocity conditions
-    # bcU1 = df.DirichletBC(U,df.Constant((0.0,0.0)),boundaries,Subdomains['BottomWall'])
-    # bcU2 = df.DirichletBC(U,df.Constant((0.0,0.0)),boundaries,Subdomains['TopWall'])
-    # bcU3 = df.DirichletBC(U,df.Constant((0.0,0.0)),boundaries,Subdomains['InnerWalls'])
     bcU1 = df.DirichletBC(U,df.Constant((0.0, 0.0, 0.0)),boundaries,Subdomains['wall'])
-    # bcU4 = df.DirichletBC(U,df.Constant((inputs.vAxialInlet,inputs.vRadialInlet)),boundaries,Subdomains['Inlets'])
+    bcU.append(bcU1)
+    
     ### Inlet velocity conditions
+    bcU2 = df.DirichletBC(U,df.Constant((0.0, 0.0, inputs.vAxialInlet)),boundaries,Subdomains['inlet'])
+    bcU.append(bcU2)
     # try:
     #     inputs.vInlet.t = 0
     #     bcU4 = df.DirichletBC(U,inputs.vInlet,boundaries,Subdomains['Inlets'])
@@ -302,7 +302,7 @@ def main(mpi_comm,inputs,savingData):
     #     bcU4 = df.DirichletBC(U,df.Constant((inputs.vAxialInlet,inputs.vRadialInlet)),boundaries,Subdomains['Inlets'])
     #     varVBC = False
 
-    bcU = [bcU1]
+    
     # bcU3 = df.DirichletBC(U,df.Constant((inputs.vAxialInlet,inputs.vRadialInlet)),boundaries,Subdomains['Inlets'])
     # bcU = [bcU1,bcU2,bcU3]
 
@@ -377,9 +377,13 @@ def main(mpi_comm,inputs,savingData):
             #         # Time dependent term                      # Inertia Term                                     # Cauchy Stresses Term  
             a1 = rho*df.dot((u-u0)/Dt,v)*dx() + inputs.alpha *(rho*df.dot(df.dot(u ,df.grad(u) ),v) + df.inner(TT(u,p,mu),DD(v)))*dx() + \
                                                 (1-inputs.alpha)*(rho*df.dot(df.dot(u0,df.grad(u0)),v) + df.inner(TT(u0,p0,mu),DD(v)))*dx()  # Relaxation 
+            # a1 = rho*df.dot((u-u0)/Dt,v)*dx() + inputs.alpha *(rho*df.dot(df.dot(u ,df.grad(u) ),v) + df.inner(2*mu*DD(u),DD(v)))*dx() + df.inner(df.grad(p),v)*dx()\
+            #                                     (1-inputs.alpha)*(rho*df.dot(df.dot(u0,df.grad(u0)),v) + df.inner(2*mu*DD(u0),DD(v)))*dx()  # Relaxation 
             # Pressure Boundary Conditions: Naturally Stated
                     # Inlet Pressure                                    # Outlet Pressure                                      # Gravity
-            L1 = - (inputs.Pin)*df.dot(n,v)*ds(Subdomains['inlet']) - (inputs.Pout)*df.dot(n,v)*ds(Subdomains['outlet']) + df.inner(rho*inputs.g,v)*dx()
+            # L1 = - (inputs.Pin)*df.dot(n,v)*ds(Subdomains['inlet']) - (inputs.Pout)*df.dot(n,v)*ds(Subdomains['outlet']) + df.inner(rho*inputs.g,v)*dx()
+            # Inlet Velocity Boundary Conditions: Dirichlet
+            L1 = + df.inner(rho*inputs.g,v)*dx()
                     # Inlet Flowrate 
             # L1 = 0 - (inputs.Pout)*df.dot(n,v)*ds(Subdomains['Outlets']) #+ df.inner(rho*inputs.g,v)*dx()
                     # Cavity
@@ -395,11 +399,6 @@ def main(mpi_comm,inputs,savingData):
             ## Jacobian Matrix Calculation
             J = df.derivative(F,w,dw)
 
-            # if varVBC:
-            #     inputs.vInlet.t = 0
-            #     bcU4 = df.DirichletBC(U,inputs.vInlet,boundaries,Subdomains['Inlets'])
-
-            # bcU[3] = bcU4
             ##########   Numerical Solver Properties
             # Problem and Solver definitions
             problemU = df.NonlinearVariationalProblem(F,w,bcU,J)
@@ -460,13 +459,9 @@ def main(mpi_comm,inputs,savingData):
             #     bcC = [bcCin]
 
             # Solve Mass Transport Problem
-            # Variable Boundary Condition
-            # if varBC:
-            #     if rank == 0:
-            #         print('pHin: {:.2f} '.format(pHin))
-            # df.solve(ac == Lc, c_1, bcC)
-            # if rank == 0:
-            #     print('Solved Mass Transport')
+            df.solve(ac == Lc, c_1, bcC)
+            if rank == 0:
+                print('Solved Mass Transport')
             
             # Calculate pH from Ion Concentration (mol/m³)
             pHExpression = df.Expression('-log10(Cion/1000)',Cion=c_1, degree=2)

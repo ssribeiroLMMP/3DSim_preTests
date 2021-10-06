@@ -25,7 +25,8 @@ th=PI/4.;  //theta
 lambda=0.3;   //=R_{arc}/R
 Lz=10;   //length in z-dir (axial)
 //***** Grid Paramaters
-Nc=7;  // no. of nodes (=#elem+1) in azimuthal direction
+Nc=3;  // no. of nodes (=#elem+1) in azimuthal direction
+Ncb = 8; // no. of nodes (=#elem+1) in azimuthal direction close to walls
 NB=2;   // no. of elemtns adjacent to the wall
 NM=3;   // no. of nodes (=#elem+1) between the near wall layer and central square part
 // compression ratios over the radial lines of the mesh
@@ -87,8 +88,8 @@ Line(20)={13, 17};
 
 //***** assign number of mesh on the created lines/arcs
 Transfinite Line {1, 2, 3, 4} = Nc Using Bump 1.0;   
-Transfinite Line {5, 6, 7, 8} = Nc;   
-Transfinite Line {9, 10, 11, 12} = Nc;   
+Transfinite Line {5, 6, 7, 8} = Ncb;   
+Transfinite Line {9, 10, 11, 12} = Ncb;   
 Transfinite Line {13, 14, 15, 16} = NM Using Progression compressRatio_M;  
 Transfinite Line {17, 18, 19, 20} = NB Using Progression compressRatio_B;   //over the radial lines near the wall. Note: "For example Progression 2 meaning that each line element in the series will be twice as long as the preceding one)".
 
